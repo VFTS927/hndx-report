@@ -166,6 +166,27 @@ footer.site .line{display:inline-block;border-top:1px solid var(--line);padding:
   main.innerHTML += `<div class="card"><h2>${esc(data.sources.title)}</h2>
     <table class="src">${data.sources.items.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.label)}</td><td>${s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.url)}</a>`:'—'}</td></tr>`).join('')}</table></div>`;
 
+  // 最新监测快照
+  if (data.snapshot) {
+    const s = data.snapshot;
+    const cdTag = s.cdp ? '<span class="tag solid">本机会话在线</span>' : '<span class="tag infer">本机会话离线（本轮仅公开源）</span>';
+    const xhsCards = (s.xhs?.cards || []).map(c => `<li>《${esc(c.title)}》 @${esc(c.author)} · ${esc(c.like)}赞</li>`).join('');
+    const cm = (s.xhs?.comments || []).slice(0, 5).map(c => `<div class="quote">${esc(c.text)}<span class="who">@${esc(c.name)}${c.like && c.like !== '赞' ? ' · ' + esc(c.like) + '赞' : ''}</span></div>`).join('');
+    main.innerHTML += `<div class="card"><h2>最新监测快照 ${cdTag}</h2>
+      <p class="small">本轮时间：${esc(s.time)}</p>
+      <p>${esc(s.summary)}</p>
+      ${xhsCards ? `<h3>小红书当前高热度相关笔记</h3><ul class="dots">${xhsCards}</ul>` : ''}
+      ${cm ? `<h3>榜首笔记评论区采样</h3>${cm}` : ''}
+      ${(s.tieba?.kwHits || []).length ? `<div class="warn-box">贴吧关键词命中：${esc(s.tieba.kwHits.join('；'))}</div>` : ''}
+    </div>`;
+  }
+
+  // 更新日志
+  if (data.updates && data.updates.length) {
+    main.innerHTML += `<div class="card"><h2>更新日志</h2>
+      <ul class="tl">${data.updates.map(u => `<li><span class="t">${esc(u.t)}</span>${esc(u.s)}</li>`).join('')}</ul></div>`;
+  }
+
   // 免责
   main.innerHTML += `<div class="card danger-box">${esc(data.disclaimer)}</div>`;
 
