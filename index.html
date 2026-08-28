@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>网络舆情监测报告 · 临时发布</title>
+<style>
+:root{
+  --bg:#f4f6f9; --card:#ffffff; --ink:#1f2937; --sub:#6b7280; --line:#e5e7eb;
+  --accent:#1e5aa8; --accent-soft:#e8f0fa; --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2; --ok:#166534; --ok-soft:#dcfce7;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.75}
+.wrap{max-width:880px;margin:0 auto;padding:0 16px 60px}
+header.site{background:linear-gradient(135deg,#123c6e,#1e5aa8);color:#fff;padding:28px 16px 22px}
+header.site .wrap{padding-bottom:0}
+header.site h1{font-size:22px;font-weight:700;letter-spacing:.5px}
+header.site .sub{margin-top:6px;font-size:13px;opacity:.85}
+.badges{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px}
+.badge{font-size:11px;padding:2px 10px;border-radius:999px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35)}
+main{padding-top:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+h2{font-size:18px;margin-bottom:12px;padding-left:10px;border-left:4px solid var(--accent)}
+h3{font-size:15px;margin:14px 0 8px;color:#111827}
+p{font-size:14.5px;color:#374151;margin-bottom:8px;text-align:justify}
+.small{font-size:12.5px;color:var(--sub)}
+.tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:4px;margin-left:6px;vertical-align:1px}
+.tag.solid{background:var(--ok-soft);color:var(--ok)}
+.tag.infer{background:var(--warn-soft);color:var(--warn)}
+.tl{list-style:none;border-left:2px solid var(--line);margin-left:8px;padding-left:18px}
+.tl li{position:relative;padding:0 0 14px 4px;font-size:14px;color:#374151}
+.tl li::before{content:"";position:absolute;left:-25px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 0 0 2px var(--accent-soft)}
+.tl .t{font-weight:600;color:var(--accent);font-size:13.5px;display:block}
+.sent{display:flex;align-items:center;margin:7px 0;font-size:13.5px}
+.sent .lb{width:130px;flex-shrink:0;color:#374151}
+.sent .bar{flex:1;height:18px;background:#eef1f5;border-radius:9px;overflow:hidden}
+.sent .fill{height:100%;border-radius:9px;background:linear-gradient(90deg,#2f7fd1,#1e5aa8)}
+.sent .pct{width:52px;text-align:right;color:var(--sub);font-variant-numeric:tabular-nums}
+.quote{background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:6px;padding:8px 12px;margin:8px 0;font-size:13.5px;color:#1f2937}
+.quote .who{color:var(--sub);font-size:12px;display:block;margin-top:3px}
+.warn-box{background:var(--warn-soft);border:1px solid #f5d78e;border-radius:8px;padding:12px 14px;font-size:13.5px;color:#78350f}
+.danger-box{background:var(--danger-soft);border:1px solid #f1b0b0;border-radius:8px;padding:12px 14px;font-size:13.5px;color:#7f1d1d}
+ol.nums,ul.dots{padding-left:22px;font-size:14px;color:#374151}
+ol.nums li,ul.dots li{margin-bottom:7px}
+table.src{width:100%;border-collapse:collapse;font-size:12.5px}
+table.src td,table.src th{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+table.src a{color:var(--accent);word-break:break-all}
+footer.site{text-align:center;color:var(--sub);font-size:12px;padding:24px 16px 40px}
+footer.site .line{display:inline-block;border-top:1px solid var(--line);padding:0 18px}
+/* 口令门 */
+#gate{position:fixed;inset:0;background:#0f2a4d;display:flex;align-items:center;justify-content:center;z-index:99;padding:20px}
+#gate .box{background:#fff;border-radius:14px;padding:32px 30px;max-width:380px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+#gate h1{font-size:17px;margin-bottom:6px}
+#gate .small{margin-bottom:18px}
+#gate input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:15px;text-align:center;outline:none}
+#gate input:focus{border-color:var(--accent)}
+#gate button{margin-top:12px;width:100%;padding:10px;background:var(--accent);color:#fff;border:0;border-radius:8px;font-size:15px;cursor:pointer}
+#gate .err{color:var(--danger);font-size:12.5px;margin-top:8px;display:none}
+#content{display:none}
+@media (max-width:640px){.sent .lb{width:104px;font-size:12.5px}header.site h1{font-size:19px}}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="box">
+    <h1>🔒 访问受限内容</h1>
+    <div class="small">本页面为内部临时发布，请输入访问口令</div>
+    <input type="password" id="pw" placeholder="访问口令" autocomplete="off">
+    <button id="unlock">进入</button>
+    <div class="err" id="err">口令不正确</div>
+  </div>
+</div>
+
+<div id="content">
+<header class="site">
+  <div class="wrap">
+    <h1 id="docTitle"></h1>
+    <div class="sub" id="docMeta"></div>
+    <div class="badges" id="badges"></div>
+  </div>
+</header>
+<main class="wrap" id="main"></main>
+<footer class="site">
+  <div class="line" id="footerNote"></div>
+</footer>
+</div>
+
+<script>
+(async () => {
+  const data = await (await fetch('data.json')).json();
+  const PW_HASH = data.passwordHash;
+
+  async function sha256(s){const b=new TextEncoder().encode(s);const d=await crypto.subtle.digest('SHA-256',b);return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+
+  const unlock = async () => {
+    const v = document.getElementById('pw').value.trim();
+    if ((await sha256(v)) === PW_HASH) {
+      sessionStorage.setItem('hndx_unlock','1');
+      document.getElementById('gate').style.display='none';
+      document.getElementById('content').style.display='block';
+      window.scrollTo(0,0);
+    } else {
+      document.getElementById('err').style.display='block';
+    }
+  };
+  document.getElementById('unlock').onclick = unlock;
+  document.getElementById('pw').addEventListener('keydown', e => { if(e.key==='Enter') unlock(); });
+  if (sessionStorage.getItem('hndx_unlock')==='1') {
+    document.getElementById('gate').style.display='none';
+    document.getElementById('content').style.display='block';
+  }
+
+  // ===== 渲染 =====
+  document.getElementById('docTitle').textContent = data.title;
+  document.getElementById('docMeta').textContent = data.meta;
+  document.getElementById('badges').innerHTML = data.badges.map(b=>`<span class="badge">${b}</span>`).join('');
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const main = document.getElementById('main');
+
+  // 监测说明 + 事件经过
+  main.innerHTML += `<div class="card"><h2>${esc(data.notice.title)}</h2><p>${esc(data.notice.body)}</p></div>`;
+
+  main.innerHTML += `<div class="card"><h2>${esc(data.timeline.title)}</h2>
+    <ul class="tl">${data.timeline.items.map(i=>`<li><span class="t">${esc(i.time)}</span>${esc(i.event)}</li>`).join('')}</ul>
+    ${data.timeline.note ? `<p class="small">${esc(data.timeline.note)}</p>`:''}
+  </div>`;
+
+  // 官方通报
+  main.innerHTML += `<div class="card"><h2>${esc(data.notice2.title)}</h2>
+    <ul class="dots">${data.notice2.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></div>`;
+
+  // 各平台
+  for (const p of data.platforms) {
+    const tag = p.solid ? '<span class="tag solid">实测采集</span>' : '<span class="tag infer">部分推断</span>';
+    const quotes = p.quotes ? p.quotes.map(q=>`<div class="quote">${esc(q.text)}<span class="who">${esc(q.who)}</span></div>`).join('') : '';
+    main.innerHTML += `<div class="card"><h2>${esc(p.name)}${tag}</h2>
+      ${p.paras.map(x=>`<p>${esc(x)}</p>`).join('')}
+      ${quotes}</div>`;
+  }
+
+  // 总体画像
+  main.innerHTML += `<div class="card"><h2>${esc(data.overview.title)}</h2>
+    <h3>${esc(data.overview.sentTitle)}</h3>
+    ${data.overview.sent.map(s=>`<div class="sent"><div class="lb">${esc(s.label)}</div><div class="bar"><div class="fill" style="width:${s.pct}%"></div></div><div class="pct">${s.pct}%</div></div>`).join('')}
+    <h3>${esc(data.overview.stageTitle)}</h3>
+    <ul class="dots">${data.overview.stages.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>
+    <h3>${esc(data.overview.disputeTitle)}</h3>
+    <ul class="dots">${data.overview.disputes.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>
+  </div>`;
+
+  // 谣言迹象
+  main.innerHTML += `<div class="card"><h2>${esc(data.rumors.title)}</h2><ul class="dots">${data.rumors.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></div>`;
+
+  // 风险与建议
+  main.innerHTML += `<div class="card"><h2>${esc(data.risk.title)}</h2>
+    <div class="warn-box">${esc(data.risk.intro)}</div>
+    <ul class="dots" style="margin-top:10px">${data.risk.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>
+    <h3>${esc(data.sug.title)}</h3>
+    <ul class="dots">${data.sug.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>
+  </div>`;
+
+  // 信源
+  main.innerHTML += `<div class="card"><h2>${esc(data.sources.title)}</h2>
+    <table class="src">${data.sources.items.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.label)}</td><td>${s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.url)}</a>`:'—'}</td></tr>`).join('')}</table></div>`;
+
+  // 免责
+  main.innerHTML += `<div class="card danger-box">${esc(data.disclaimer)}</div>`;
+
+  document.getElementById('footerNote').textContent = data.footer;
+})();
+</script>
+</body>
+</html>
