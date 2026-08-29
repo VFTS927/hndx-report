@@ -239,7 +239,14 @@ footer.site .line{display:inline-block;border-top:1px solid var(--line);padding:
         <div class="cell full"><h4>文章留言采样（最新2篇）</h4>${sn.weixin?.ok ? (sn.weixin.withComments||[]).map(a=>`<p class="small" style="font-weight:600">${esc(a.account)}《${esc(a.title.slice(0,26))}》${esc(a.time)}</p>` + (a.comments?.length ? a.comments.slice(0,5).map(cm=>`<div class="quote">${esc(cm.text)}<span class="who">${esc(cm.author)}${cm.like?' · '+cm.like+'赞':''}</span></div>`).join('') : '<p class="small">该文未开放留言或暂无精选留言</p>')).join('') : '<div class="empty">样本不足</div>'}</div>
       </div>`;
     }
+    let dyn = '';
+    if (p.name.includes('微博')) dyn = sn.weibo?.ok ? `本轮动态：监测${sn.weibo.total}条 · 新增${sn.weibo.newCount}条 · 问责情绪${(sn.weibo.senti?.问责||0) + (sn.weibo.senti?.其他||0)}条 · 最新@${esc(sn.weibo.latest?.user||'—')} ${esc(sn.weibo.latest?.time||'')}` : '本轮动态：采集未完成';
+    else if (p.name.includes('小红书')) dyn = sn.xhs?.related ? `本轮动态：相关笔记${sn.xhs.related}篇 · 榜首《${esc(sn.xhs.topNote?.title?.slice(0,14)||'')}》${esc(sn.xhs.topNote?.like||'')}赞 · 隐性关联${(sn.xhs.implicit||[]).length}篇 · 评论区采样${(sn.xhs.comments||[]).length}篇` : '本轮动态：采集未完成';
+    else if (p.name.includes('微信公众号')) dyn = sn.weixin?.ok ? `本轮动态：监测${sn.weixin.total}篇 · 新增${sn.weixin.newCount}篇 · 最新${esc(sn.weixin.latest?.account||'')}《${esc(sn.weixin.latest?.title?.slice(0,18)||'')}》` : '本轮动态：采集未完成';
+    else if (p.name.includes('贴吧')) dyn = `本轮动态：海南大学吧状态“${esc(sn.tieba?.toast||'未知')}”`;
+    else if (p.name.includes('抖音')) dyn = `本轮动态：热榜前50${(sn.douyin?.hits||[]).length ? '出现相关词条' : '无相关词条'}`;
     main.innerHTML += `<div class="card"><h2>${esc(p.name)}${tag}</h2>
+      ${dyn ? `<p class="small" style="margin-bottom:8px;color:#1e5aa8">${dyn}</p>` : ''}
       ${p.paras.map(x=>`<p>${esc(x)}</p>`).join('')}
       ${quotes}
       ${viz}</div>`;
@@ -254,7 +261,8 @@ footer.site .line{display:inline-block;border-top:1px solid var(--line);padding:
     <ul class="dots">${data.overview.disputes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
 
   main.innerHTML += `<div class="card"><h2>${esc(data.rumors.title)}</h2><ul class="dots">${data.rumors.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></div>`;
-  main.innerHTML += `<div class="card"><h2>${esc(data.risk.title)}</h2>
+  const lvlTag = data.risk.level ? `<span class="tag ${data.risk.level==='高'?'infer':'solid'}">风险等级：${esc(data.risk.level)}（${esc(data.snapshot?.time||'')}评估）</span>` : '';
+  main.innerHTML += `<div class="card"><h2>${esc(data.risk.title)}${lvlTag}</h2>
     <div class="warn-box">${esc(data.risk.intro)}</div>
     <ul class="dots" style="margin-top:10px">${data.risk.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>
     <h3>${esc(data.sug.title)}</h3>
