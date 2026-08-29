@@ -207,37 +207,38 @@ footer.site .line{display:inline-block;border-top:1px solid var(--line);padding:
       <p>${esc(s.summary)}</p></div>`;
   }
 
-  // ===== 数据仪表盘 =====
+  // ===== 报告全文 =====
   const hist = data.history || [];
   const sn = data.snapshot || {};
-  let dash = '<div class="card"><h2>数据仪表盘（按平台）</h2><p class="small">数据随每轮监测累积；样本不足的图表暂不展示。抖音因可采样本过少已按约定跳过。</p><div class="grid">';
-
-  dash += `<div class="cell"><h4>小红书 · 相关笔记可见数趋势</h4><div class="chartbox">${lineChart(hist.map(h=>({l:h.t, v:h.xhs?.n||0})).filter(p=>p.v>0))}</div></div>`;
-  dash += `<div class="cell"><h4>小红书 · 榜首笔记点赞趋势</h4><div class="chartbox">${lineChart(hist.map(h=>({l:h.t, v:h.xhs?.top||0})).filter(p=>p.v>0))}</div></div>`;
-  dash += `<div class="cell"><h4>小红书 · 笔记类型分布（最新轮）</h4>${donut(sn.xhs?.types)}</div>`;
-
-  const wbRows = hist.map(h=>({l:h.t, a:h.wb?.n||0, b:h.wb?.new||0})).filter(r=>r.a>0);
-  dash += `<div class="cell"><h4>微博 · 每轮监测条数（新增加深）</h4><div class="legend"><span><i style="background:#b9cfe8"></i>累计条数</span><span><i style="background:#1e5aa8"></i>本轮新增</span></div>${stackedBars(wbRows)}</div>`;
-  dash += `<div class="cell"><h4>微博 · 情感分布（最新轮）</h4>${donut(sn.weibo?.senti)}</div>`;
-  const wbTop = (data.wbPool||[]).map(p=>({l:`@${p.user}`, v:p.likes||0, tip:p.text}));
-  dash += `<div class="cell full"><h4>微博 · 高赞帖TOP榜（跨轮累计 · 点赞量）</h4>${hbars(wbTop,'赞')}</div>`;
-
-  const wxRows = hist.map(h=>({l:h.t, a:h.wx?.n||0, b:h.wx?.new||0})).filter(r=>r.a>0);
-  dash += `<div class="cell"><h4>公众号 · 累计篇数与每轮新增</h4>${stackedBars(wxRows)}</div>`;
-
-  const tbDots = hist.map(h=>`<span class="${h.tb?.state==='审核中'?'audit':''}">${esc(h.t)} ${esc(h.tb?.state||'—')}</span>`).join('');
-  dash += `<div class="cell"><h4>贴吧 · 海南大学吧状态时间线</h4><div class="status-dots">${tbDots || '<div class="empty">样本不足</div>'}</div></div>`;
-
-  dash += '</div></div>';
-  main.innerHTML += dash;
-
-  // ===== 报告全文 =====
   for (const p of data.platforms) {
     const tag = p.solid ? '<span class="tag solid">实测采集</span>' : '<span class="tag infer">部分推断</span>';
     const quotes = p.quotes ? p.quotes.map(q=>`<div class="quote">${esc(q.text)}<span class="who">${esc(q.who)}</span></div>`).join('') : '';
+    let viz = '';
+    if (p.name.includes('小红书')) {
+      viz = `<div class="grid" style="margin-top:6px">
+        <div class="cell"><h4>相关笔记可见数趋势</h4>${lineChart(hist.map(h=>({l:h.t, v:h.xhs?.n||0})).filter(x=>x.v>0))}</div>
+        <div class="cell"><h4>榜首笔记点赞趋势</h4>${lineChart(hist.map(h=>({l:h.t, v:h.xhs?.top||0})).filter(x=>x.v>0))}</div>
+        <div class="cell"><h4>笔记类型分布（最新轮）</h4>${donut(sn.xhs?.types)}</div>
+        <div class="cell"><h4>本轮高热度笔记</h4>${hbars((sn.xhs?.cards||[]).map(c=>({l:c.title.slice(0,18), v:parseInt(String(c.like).replace(/[^0-9]/g,''))||1, tip:'@'+c.author})).filter(x=>x.v>1).slice(0,8),'赞')}</div>
+      </div>`;
+    } else if (p.name.includes('微博')) {
+      const wbRows = hist.map(h=>({l:h.t, a:h.wb?.n||0, b:h.wb?.new||0})).filter(r=>r.a>0);
+      viz = `<div class="grid" style="margin-top:6px">
+        <div class="cell"><h4>每轮监测条数（新增加深）</h4><div class="legend"><span><i style="background:#b9cfe8"></i>累计条数</span><span><i style="background:#1e5aa8"></i>本轮新增</span></div>${stackedBars(wbRows)}</div>
+        <div class="cell"><h4>情感分布（最新轮）</h4>${donut(sn.weibo?.senti)}</div>
+        <div class="cell full"><h4>高赞帖TOP榜（跨轮累计 · 点赞量）</h4>${hbars((data.wbPool||[]).map(p=>({l:'@'+p.user, v:p.likes||0, tip:p.text})).filter(x=>x.v>0),'赞')}</div>
+      </div>`;
+    } else if (p.name.includes('微信公众号')) {
+      const wxRows = hist.map(h=>({l:h.t, a:h.wx?.n||0, b:h.wx?.new||0})).filter(r=>r.a>0);
+      viz = `<div class="grid" style="margin-top:6px">
+        <div class="cell"><h4>累计篇数与每轮新增</h4>${stackedBars(wxRows)}</div>
+        <div class="cell"><h4>最新动态</h4>${sn.weixin?.ok ? (sn.weixin.newItems||[]).slice(0,6).map(i=>`<div class="quote">${esc(i.account)}《${esc(i.title.slice(0,24))}》<span class="who">${esc(i.time)}</span></div>`).join('') + (sn.weixin.latest ? `<p class="small">最新：${esc(sn.weixin.latest.account)}《${esc(sn.weixin.latest.title.slice(0,30))}》 ${esc(sn.weixin.latest.time)}</p>` : '') : '<div class="empty">样本不足</div>'}</div>
+      </div>`;
+    }
     main.innerHTML += `<div class="card"><h2>${esc(p.name)}${tag}</h2>
       ${p.paras.map(x=>`<p>${esc(x)}</p>`).join('')}
-      ${quotes}</div>`;
+      ${quotes}
+      ${viz}</div>`;
   }
 
   main.innerHTML += `<div class="card"><h2>${esc(data.overview.title)}</h2>
