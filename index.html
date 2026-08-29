@@ -221,6 +221,7 @@ footer.site .line{display:inline-block;border-top:1px solid var(--line);padding:
         <div class="cell"><h4>笔记类型分布（最新轮）</h4>${donut(sn.xhs?.types)}</div>
         <div class="cell"><h4>本轮高热度笔记</h4>${hbars((sn.xhs?.cards||[]).map(c=>({l:c.title.slice(0,18), v:parseInt(String(c.like).replace(/[^0-9]/g,''))||1, tip:'@'+c.author})).filter(x=>x.v>1).slice(0,8),'赞')}</div>
         <div class="cell full"><h4>笔记评论区采样（点赞最高2篇）</h4>${(sn.xhs?.comments||[]).map(nb=>`<p class="small" style="font-weight:600">《${esc(nb.note.title)}》${esc(nb.note.like)}赞</p>` + nb.comments.slice(0,6).map(cm=>`<div class="quote">${esc(cm.text)}<span class="who">@${esc(cm.name)}${cm.like&&cm.like!=='赞'?' · '+esc(cm.like)+'赞':''}</span></div>`).join('')).join('') || '<div class="empty">样本不足</div>'}</div>
+        <div class="cell full"><h4>隐性关联笔记（标题未提及事件，评论区讨论事件）</h4>${(sn.xhs?.implicit||[]).map(nb=>`<p class="small" style="font-weight:600">《${esc(nb.note.title)}》${esc(nb.note.like)}赞</p>` + nb.comments.map(cm=>`<div class="quote">${esc(cm.text)}<span class="who">@${esc(cm.name)}${cm.like&&cm.like!=='赞'?' · '+esc(cm.like)+'赞':''}</span></div>`).join('')).join('') || '<div class="empty">本轮未发现隐性关联笔记（候选笔记评论区扫描中）</div>'}</div>
       </div>`;
     } else if (p.name.includes('微博')) {
       const wbRows = hist.map(h=>({l:h.t, a:h.wb?.n||0, b:h.wb?.new||0})).filter(r=>r.a>0);
