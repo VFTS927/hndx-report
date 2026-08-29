@@ -178,6 +178,9 @@ footer.site .line{display:inline-block;border-top:1px solid var(--line);padding:
       ${xhsCards ? `<h3>小红书当前高热度相关笔记</h3><ul class="dots">${xhsCards}</ul>` : ''}
       ${cm ? `<h3>榜首笔记评论区采样</h3>${cm}` : ''}
       ${(s.tieba?.kwHits || []).length ? `<div class="warn-box">贴吧关键词命中：${esc(s.tieba.kwHits.join('；'))}</div>` : ''}
+      ${s.weixin?.ok ? `<h3>公众号最新动态</h3>
+        <p>已监测${s.weixin.total}篇${s.weixin.newCount ? `，新增${s.weixin.newCount}篇：` + (s.weixin.newItems||[]).map(i=>`${esc(i.account)}（${esc(i.time)}）`).join('、') : '，无新增'}
+        ${s.weixin.latest ? `；最新：${esc(s.weixin.latest.account)}《${esc(s.weixin.latest.title)}》${esc(s.weixin.latest.time)}` : ''}</p>` : `<p class="small">公众号监测：${esc(s.weixin?.err || '未完成')}</p>`}
     </div>`;
   }
 
