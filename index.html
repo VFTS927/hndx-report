@@ -220,6 +220,7 @@ footer.site .line{display:inline-block;border-top:1px solid var(--line);padding:
         <div class="cell"><h4>榜首笔记点赞趋势</h4>${lineChart(hist.map(h=>({l:h.t, v:h.xhs?.top||0})).filter(x=>x.v>0))}</div>
         <div class="cell"><h4>笔记类型分布（最新轮）</h4>${donut(sn.xhs?.types)}</div>
         <div class="cell"><h4>本轮高热度笔记</h4>${hbars((sn.xhs?.cards||[]).map(c=>({l:c.title.slice(0,18), v:parseInt(String(c.like).replace(/[^0-9]/g,''))||1, tip:'@'+c.author})).filter(x=>x.v>1).slice(0,8),'赞')}</div>
+        <div class="cell full"><h4>笔记评论区采样（点赞最高2篇）</h4>${(sn.xhs?.comments||[]).map(nb=>`<p class="small" style="font-weight:600">《${esc(nb.note.title)}》${esc(nb.note.like)}赞</p>` + nb.comments.slice(0,6).map(cm=>`<div class="quote">${esc(cm.text)}<span class="who">@${esc(cm.name)}${cm.like&&cm.like!=='赞'?' · '+esc(cm.like)+'赞':''}</span></div>`).join('')).join('') || '<div class="empty">样本不足</div>'}</div>
       </div>`;
     } else if (p.name.includes('微博')) {
       const wbRows = hist.map(h=>({l:h.t, a:h.wb?.n||0, b:h.wb?.new||0})).filter(r=>r.a>0);
@@ -227,12 +228,14 @@ footer.site .line{display:inline-block;border-top:1px solid var(--line);padding:
         <div class="cell"><h4>每轮监测条数（新增加深）</h4><div class="legend"><span><i style="background:#b9cfe8"></i>累计条数</span><span><i style="background:#1e5aa8"></i>本轮新增</span></div>${stackedBars(wbRows)}</div>
         <div class="cell"><h4>情感分布（最新轮）</h4>${donut(sn.weibo?.senti)}</div>
         <div class="cell full"><h4>高赞帖TOP榜（跨轮累计 · 点赞量）</h4>${hbars((data.wbPool||[]).map(p=>({l:'@'+p.user, v:p.likes||0, tip:p.text})).filter(x=>x.v>0),'赞')}</div>
+        <div class="cell full"><h4>本轮新增帖子</h4>${(sn.weibo?.newPosts||[]).slice(0,6).map(x=>`<div class="quote">${esc(x.text)}<span class="who">@${esc(x.user)} · ${esc(x.likes)}赞 · ${esc(x.time)}</span></div>`).join('') || '<div class="empty">本轮无新增</div>'}</div>
       </div>`;
     } else if (p.name.includes('微信公众号')) {
       const wxRows = hist.map(h=>({l:h.t, a:h.wx?.n||0, b:h.wx?.new||0})).filter(r=>r.a>0);
       viz = `<div class="grid" style="margin-top:6px">
         <div class="cell"><h4>累计篇数与每轮新增</h4>${stackedBars(wxRows)}</div>
         <div class="cell"><h4>最新动态</h4>${sn.weixin?.ok ? (sn.weixin.newItems||[]).slice(0,6).map(i=>`<div class="quote">${esc(i.account)}《${esc(i.title.slice(0,24))}》<span class="who">${esc(i.time)}</span></div>`).join('') + (sn.weixin.latest ? `<p class="small">最新：${esc(sn.weixin.latest.account)}《${esc(sn.weixin.latest.title.slice(0,30))}》 ${esc(sn.weixin.latest.time)}</p>` : '') : '<div class="empty">样本不足</div>'}</div>
+        <div class="cell full"><h4>文章留言采样（最新2篇）</h4>${sn.weixin?.ok ? (sn.weixin.withComments||[]).map(a=>`<p class="small" style="font-weight:600">${esc(a.account)}《${esc(a.title.slice(0,26))}》${esc(a.time)}</p>` + (a.comments?.length ? a.comments.slice(0,5).map(cm=>`<div class="quote">${esc(cm.text)}<span class="who">${esc(cm.author)}${cm.like?' · '+cm.like+'赞':''}</span></div>`).join('') : '<p class="small">该文未开放留言或暂无精选留言</p>')).join('') : '<div class="empty">样本不足</div>'}</div>
       </div>`;
     }
     main.innerHTML += `<div class="card"><h2>${esc(p.name)}${tag}</h2>
