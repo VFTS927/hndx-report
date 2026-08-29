@@ -247,7 +247,7 @@ footer.site .line{display:inline-block;border-top:1px solid var(--line);padding:
 
   main.innerHTML += `<div class="card"><h2>${esc(data.overview.title)}</h2>
     <h3>${esc(data.overview.sentTitle)}</h3>
-    ${data.overview.sent.map(x=>`<div class="sent"><div class="lb">${esc(x.label)}</div><div class="bar"><div class="fill" style="width:${x.pct}%"></div></div><div class="pct">${x.pct}%</div></div>`).join('')}
+    ${data.overview.sent.map(x=>`<div class="sent"><div class="lb">${esc(x.label)}</div><div class="bar"><div class="fill" style="width:${x.pct}%"></div></div><div class="pct">${x.pct}%${x.n?'（'+x.n+'）':''}</div></div>`).join('')}
     <h3>${esc(data.overview.stageTitle)}</h3>
     <ul class="dots">${data.overview.stages.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
     <h3>${esc(data.overview.disputeTitle)}</h3>
