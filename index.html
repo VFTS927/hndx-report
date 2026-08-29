@@ -10,6 +10,7 @@
   --bg:#f4f6f9; --card:#ffffff; --ink:#1f2937; --sub:#6b7280; --line:#e5e7eb;
   --accent:#1e5aa8; --accent-soft:#e8f0fa; --warn:#b45309; --warn-soft:#fef3c7;
   --danger:#b91c1c; --danger-soft:#fee2e2; --ok:#166534; --ok-soft:#dcfce7;
+  --c1:#1e5aa8; --c2:#e11d48; --c3:#d97706; --c4:#059669; --c5:#6b7280;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.75}
@@ -23,7 +24,8 @@ header.site .sub{margin-top:6px;font-size:13px;opacity:.85}
 main{padding-top:20px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
 h2{font-size:18px;margin-bottom:12px;padding-left:10px;border-left:4px solid var(--accent)}
-h3{font-size:15px;margin:14px 0 8px;color:#111827}
+h3{font-size:15px;margin:16px 0 8px;color:#111827}
+h3:first-of-type{margin-top:0}
 p{font-size:14.5px;color:#374151;margin-bottom:8px;text-align:justify}
 .small{font-size:12.5px;color:var(--sub)}
 .tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:4px;margin-left:6px;vertical-align:1px}
@@ -49,6 +51,24 @@ table.src td,table.src th{border:1px solid var(--line);padding:7px 10px;text-ali
 table.src a{color:var(--accent);word-break:break-all}
 footer.site{text-align:center;color:var(--sub);font-size:12px;padding:24px 16px 40px}
 footer.site .line{display:inline-block;border-top:1px solid var(--line);padding:0 18px}
+/* 仪表盘 */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid .cell{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:#fafbfd}
+.grid .cell h4{font-size:13.5px;color:#111827;margin-bottom:6px}
+.grid .cell.full{grid-column:1/-1}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--sub);margin:6px 0 2px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.bar-row{display:flex;align-items:center;margin:5px 0;font-size:12.5px}
+.bar-row .nm{width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151}
+.bar-row .tk{flex:1;height:12px;background:#eef1f5;border-radius:6px;overflow:hidden;display:flex}
+.bar-row .tk i{display:block;height:100%}
+.bar-row .vl{width:66px;text-align:right;color:var(--sub);font-variant-numeric:tabular-nums}
+.status-dots{display:flex;flex-wrap:wrap;gap:6px;font-size:12px}
+.status-dots span{background:var(--ok-soft);color:var(--ok);padding:1px 8px;border-radius:999px}
+.status-dots span.audit{background:var(--warn-soft);color:var(--warn)}
+.chartbox{position:relative}
+.chartbox svg{display:block}
+.empty{padding:22px 0;text-align:center;color:var(--sub);font-size:12.5px}
 /* 口令门 */
 #gate{position:fixed;inset:0;background:#0f2a4d;display:flex;align-items:center;justify-content:center;z-index:99;padding:20px}
 #gate .box{background:#fff;border-radius:14px;padding:32px 30px;max-width:380px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.35)}
@@ -59,7 +79,7 @@ footer.site .line{display:inline-block;border-top:1px solid var(--line);padding:
 #gate button{margin-top:12px;width:100%;padding:10px;background:var(--accent);color:#fff;border:0;border-radius:8px;font-size:15px;cursor:pointer}
 #gate .err{color:var(--danger);font-size:12.5px;margin-top:8px;display:none}
 #content{display:none}
-@media (max-width:640px){.sent .lb{width:104px;font-size:12.5px}header.site h1{font-size:19px}}
+@media (max-width:640px){.grid{grid-template-columns:1fr}.sent .lb{width:104px;font-size:12.5px}header.site h1{font-size:19px}}
 </style>
 </head>
 <body>
@@ -113,26 +133,105 @@ footer.site .line{display:inline-block;border-top:1px solid var(--line);padding:
     document.getElementById('content').style.display='block';
   }
 
-  // ===== 渲染 =====
+  const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const main = document.getElementById('main');
+
+  // ===== 图表工具（纯SVG/CSS，无外部依赖） =====
+  const COLORS = ['#1e5aa8','#e11d48','#d97706','#059669','#6b7280'];
+
+  function lineChart(pts, w=540, h=150) {
+    if (!pts || pts.length < 2) return '<div class="empty">样本不足（需至少2轮数据，随监测自动累积）</div>';
+    const padL=30, padR=14, padT=12, padB=20;
+    const vals = pts.map(p=>p.v);
+    const min = Math.min(...vals), max = Math.max(...vals);
+    const span = (max-min) || 1;
+    const x = i => padL + i*(w-padL-padR)/Math.max(1,pts.length-1);
+    const y = v => padT + (h-padT-padB) - (v-min)/span*(h-padT-padB);
+    const path = pts.map((p,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(p.v).toFixed(1)).join(' ');
+    const area = path + ' L' + x(pts.length-1).toFixed(1) + ' ' + (h-padB) + ' L' + padL + ' ' + (h-padB) + ' Z';
+    const dots = pts.map((p,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="3" fill="#1e5aa8"><title>${esc(p.l)}：${p.v}</title></circle>`).join('');
+    const grid = [0,1,2,3].map(k=>{const vv=min+span*k/3;const yy=y(vv).toFixed(1);return `<line x1="${padL}" y1="${yy}" x2="${w-padR}" y2="${yy}" stroke="#eef1f5"/><text x="4" y="${Number(yy)+3}" font-size="9" fill="#9ca3af">${Math.round(vv)}</text>`;}).join('');
+    const labels = [pts[0], pts[pts.length-1]].map((p,i)=>`<text x="${i===0?padL:w-padR}" text-anchor="${i===0?'start':'end'}" y="${h-6}" font-size="9" fill="#6b7280">${esc(p.l)}</text>`).join('');
+    return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto">${grid}<path d="${area}" fill="#1e5aa8" opacity="0.07"/><polyline points="${path}" fill="none" stroke="#1e5aa8" stroke-width="2"/>${dots}${labels}</svg>`;
+  }
+
+  function donut(segs, size=110) {
+    const total = Object.values(segs||{}).reduce((a,b)=>a+b,0);
+    if (!total) return '<div class="empty">样本不足</div>';
+    const r = size/2 - 10, cx = size/2, cy = size/2;
+    let angle = -Math.PI/2; const parts = [];
+    const names = Object.keys(segs);
+    names.forEach((k,i)=>{
+      const frac = segs[k]/total;
+      const a1 = angle, a2 = angle + frac*Math.PI*2;
+      const x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1), x2=cx+r*Math.cos(a2), y2=cy+r*Math.sin(a2);
+      parts.push(`<path d="M${cx} ${cy} L${x1.toFixed(1)} ${y1.toFixed(1)} A${r} ${r} 0 ${frac>0.5?1:0} 1 ${x2.toFixed(1)} ${y2.toFixed(1)} Z" fill="${COLORS[i%5]}"><title>${esc(k)} ${segs[k]}条</title></path>`);
+      angle = a2;
+    });
+    parts.push(`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="15" font-weight="700" fill="#1f2937">${total}</text>`);
+    parts.push(`<text x="${cx}" y="${cy+10}" text-anchor="middle" font-size="8" fill="#9ca3af">样本量</text>`);
+    const legend = names.map((k,i)=>`<span><i style="background:${COLORS[i%5]}"></i>${esc(k)} ${segs[k]}</span>`).join('');
+    return `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><svg viewBox="0 0 ${size} ${size}" style="width:${size}px;height:${size}px;flex-shrink:0">${parts.join('')}</svg><div class="legend" style="flex-direction:column;align-items:flex-start;gap:4px">${legend}</div></div>`;
+  }
+
+  function hbars(items, unit='') {
+    if (!items || !items.length) return '<div class="empty">样本不足</div>';
+    const max = Math.max(...items.map(i=>i.v)) || 1;
+    return items.slice(0, 8).map(i=>`<div class="bar-row"><div class="nm" title="${esc(i.tip||i.l)}">${esc(i.l)}</div><div class="tk"><i style="width:${(i.v/max*100).toFixed(0)}%;background:linear-gradient(90deg,#2f7fd1,#1e5aa8)"></i></div><div class="vl">${i.v}${unit}</div></div>`).join('');
+  }
+
+  function stackedBars(rows) {
+    if (!rows || !rows.length) return '<div class="empty">样本不足</div>';
+    const max = Math.max(...rows.map(r=>(r.a||0)+(r.b||0))) || 1;
+    return rows.map(r=>`<div class="bar-row"><div class="nm">${esc(r.l)}</div><div class="tk"><i style="width:${((r.a||0)/max*100).toFixed(0)}%;background:#b9cfe8"></i><i style="width:${((r.b||0)/max*100).toFixed(0)}%;background:#1e5aa8"></i></div><div class="vl">${r.a||0}${r.b?'(+'+r.b+')':''}</div></div>`).join('');
+  }
+
+  // ===== 页面骨架渲染 =====
   document.getElementById('docTitle').textContent = data.title;
   document.getElementById('docMeta').textContent = data.meta;
   document.getElementById('badges').innerHTML = data.badges.map(b=>`<span class="badge">${b}</span>`).join('');
-  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const main = document.getElementById('main');
 
-  // 监测说明 + 事件经过
   main.innerHTML += `<div class="card"><h2>${esc(data.notice.title)}</h2><p>${esc(data.notice.body)}</p></div>`;
-
   main.innerHTML += `<div class="card"><h2>${esc(data.timeline.title)}</h2>
     <ul class="tl">${data.timeline.items.map(i=>`<li><span class="t">${esc(i.time)}</span>${esc(i.event)}</li>`).join('')}</ul>
-    ${data.timeline.note ? `<p class="small">${esc(data.timeline.note)}</p>`:''}
-  </div>`;
-
-  // 官方通报
+    ${data.timeline.note ? `<p class="small">${esc(data.timeline.note)}</p>`:''}</div>`;
   main.innerHTML += `<div class="card"><h2>${esc(data.notice2.title)}</h2>
     <ul class="dots">${data.notice2.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></div>`;
 
-  // 各平台
+  // ===== 最新监测快照 =====
+  if (data.snapshot) {
+    const s = data.snapshot;
+    const cdTag = s.cdp ? '<span class="tag solid">本机会话在线</span>' : '<span class="tag infer">本机会话离线（本轮仅公开源）</span>';
+    main.innerHTML += `<div class="card"><h2>最新监测快照 ${cdTag}</h2>
+      <p class="small">本轮时间：${esc(s.time)}</p>
+      <p>${esc(s.summary)}</p></div>`;
+  }
+
+  // ===== 数据仪表盘 =====
+  const hist = data.history || [];
+  const sn = data.snapshot || {};
+  let dash = '<div class="card"><h2>数据仪表盘（按平台）</h2><p class="small">数据随每轮监测累积；样本不足的图表暂不展示。抖音因可采样本过少已按约定跳过。</p><div class="grid">';
+
+  dash += `<div class="cell"><h4>小红书 · 相关笔记可见数趋势</h4><div class="chartbox">${lineChart(hist.map(h=>({l:h.t, v:h.xhs?.n||0})).filter(p=>p.v>0))}</div></div>`;
+  dash += `<div class="cell"><h4>小红书 · 榜首笔记点赞趋势</h4><div class="chartbox">${lineChart(hist.map(h=>({l:h.t, v:h.xhs?.top||0})).filter(p=>p.v>0))}</div></div>`;
+  dash += `<div class="cell"><h4>小红书 · 笔记类型分布（最新轮）</h4>${donut(sn.xhs?.types)}</div>`;
+
+  const wbRows = hist.map(h=>({l:h.t, a:h.wb?.n||0, b:h.wb?.new||0})).filter(r=>r.a>0);
+  dash += `<div class="cell"><h4>微博 · 每轮监测条数（新增加深）</h4><div class="legend"><span><i style="background:#b9cfe8"></i>累计条数</span><span><i style="background:#1e5aa8"></i>本轮新增</span></div>${stackedBars(wbRows)}</div>`;
+  dash += `<div class="cell"><h4>微博 · 情感分布（最新轮）</h4>${donut(sn.weibo?.senti)}</div>`;
+  const wbTop = (data.wbPool||[]).map(p=>({l:`@${p.user}`, v:p.likes||0, tip:p.text}));
+  dash += `<div class="cell full"><h4>微博 · 高赞帖TOP榜（跨轮累计 · 点赞量）</h4>${hbars(wbTop,'赞')}</div>`;
+
+  const wxRows = hist.map(h=>({l:h.t, a:h.wx?.n||0, b:h.wx?.new||0})).filter(r=>r.a>0);
+  dash += `<div class="cell"><h4>公众号 · 累计篇数与每轮新增</h4>${stackedBars(wxRows)}</div>`;
+
+  const tbDots = hist.map(h=>`<span class="${h.tb?.state==='审核中'?'audit':''}">${esc(h.t)} ${esc(h.tb?.state||'—')}</span>`).join('');
+  dash += `<div class="cell"><h4>贴吧 · 海南大学吧状态时间线</h4><div class="status-dots">${tbDots || '<div class="empty">样本不足</div>'}</div></div>`;
+
+  dash += '</div></div>';
+  main.innerHTML += dash;
+
+  // ===== 报告全文 =====
   for (const p of data.platforms) {
     const tag = p.solid ? '<span class="tag solid">实测采集</span>' : '<span class="tag infer">部分推断</span>';
     const quotes = p.quotes ? p.quotes.map(q=>`<div class="quote">${esc(q.text)}<span class="who">${esc(q.who)}</span></div>`).join('') : '';
@@ -141,61 +240,30 @@ footer.site .line{display:inline-block;border-top:1px solid var(--line);padding:
       ${quotes}</div>`;
   }
 
-  // 总体画像
   main.innerHTML += `<div class="card"><h2>${esc(data.overview.title)}</h2>
     <h3>${esc(data.overview.sentTitle)}</h3>
-    ${data.overview.sent.map(s=>`<div class="sent"><div class="lb">${esc(s.label)}</div><div class="bar"><div class="fill" style="width:${s.pct}%"></div></div><div class="pct">${s.pct}%</div></div>`).join('')}
+    ${data.overview.sent.map(x=>`<div class="sent"><div class="lb">${esc(x.label)}</div><div class="bar"><div class="fill" style="width:${x.pct}%"></div></div><div class="pct">${x.pct}%</div></div>`).join('')}
     <h3>${esc(data.overview.stageTitle)}</h3>
-    <ul class="dots">${data.overview.stages.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>
+    <ul class="dots">${data.overview.stages.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
     <h3>${esc(data.overview.disputeTitle)}</h3>
-    <ul class="dots">${data.overview.disputes.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>
-  </div>`;
+    <ul class="dots">${data.overview.disputes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
 
-  // 谣言迹象
   main.innerHTML += `<div class="card"><h2>${esc(data.rumors.title)}</h2><ul class="dots">${data.rumors.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></div>`;
-
-  // 风险与建议
   main.innerHTML += `<div class="card"><h2>${esc(data.risk.title)}</h2>
     <div class="warn-box">${esc(data.risk.intro)}</div>
     <ul class="dots" style="margin-top:10px">${data.risk.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>
     <h3>${esc(data.sug.title)}</h3>
-    <ul class="dots">${data.sug.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>
-  </div>`;
+    <ul class="dots">${data.sug.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></div>`;
 
-  // 信源
   main.innerHTML += `<div class="card"><h2>${esc(data.sources.title)}</h2>
-    <table class="src">${data.sources.items.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.label)}</td><td>${s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.url)}</a>`:'—'}</td></tr>`).join('')}</table></div>`;
+    <table class="src">${data.sources.items.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.label)}</td><td>${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.url)}</a>`:'—'}</td></tr>`).join('')}</table></div>`;
 
-  // 最新监测快照
-  if (data.snapshot) {
-    const s = data.snapshot;
-    const cdTag = s.cdp ? '<span class="tag solid">本机会话在线</span>' : '<span class="tag infer">本机会话离线（本轮仅公开源）</span>';
-    const xhsCards = (s.xhs?.cards || []).map(c => `<li>《${esc(c.title)}》 @${esc(c.author)} · ${esc(c.like)}赞</li>`).join('');
-    const cm = (s.xhs?.comments || []).slice(0, 5).map(c => `<div class="quote">${esc(c.text)}<span class="who">@${esc(c.name)}${c.like && c.like !== '赞' ? ' · ' + esc(c.like) + '赞' : ''}</span></div>`).join('');
-    main.innerHTML += `<div class="card"><h2>最新监测快照 ${cdTag}</h2>
-      <p class="small">本轮时间：${esc(s.time)}</p>
-      <p>${esc(s.summary)}</p>
-      ${xhsCards ? `<h3>小红书当前高热度相关笔记</h3><ul class="dots">${xhsCards}</ul>` : ''}
-      ${cm ? `<h3>榜首笔记评论区采样</h3>${cm}` : ''}
-      ${(s.tieba?.kwHits || []).length ? `<div class="warn-box">贴吧关键词命中：${esc(s.tieba.kwHits.join('；'))}</div>` : ''}
-      ${s.weibo?.ok ? `<h3>微博搜索监测</h3>
-        <p>监测${s.weibo.total}条${s.weibo.newCount ? `，新增${s.weibo.newCount}条` : '，无新增'}${s.weibo.latest ? `；最新：@${esc(s.weibo.latest.user)} ${esc(s.weibo.latest.time)}` : ''}</p>
-        ${(s.weibo.newPosts || []).slice(0, 3).map(p => `<div class="quote">${esc(p.text)}<span class="who">@${esc(p.user)} · ${esc(p.likes)}赞 · ${esc(p.time)}</span></div>`).join('')}` : `<p class="small">微博监测：${esc(s.weibo?.err || '未完成')}</p>`}
-      ${s.weixin?.ok ? `<h3>公众号最新动态</h3>
-        <p>已监测${s.weixin.total}篇${s.weixin.newCount ? `，新增${s.weixin.newCount}篇：` + (s.weixin.newItems||[]).map(i=>`${esc(i.account)}（${esc(i.time)}）`).join('、') : '，无新增'}
-        ${s.weixin.latest ? `；最新：${esc(s.weixin.latest.account)}《${esc(s.weixin.latest.title)}》${esc(s.weixin.latest.time)}` : ''}</p>` : `<p class="small">公众号监测：${esc(s.weixin?.err || '未完成')}</p>`}
-    </div>`;
-  }
-
-  // 更新日志
   if (data.updates && data.updates.length) {
     main.innerHTML += `<div class="card"><h2>更新日志</h2>
-      <ul class="tl">${data.updates.map(u => `<li><span class="t">${esc(u.t)}</span>${esc(u.s)}</li>`).join('')}</ul></div>`;
+      <ul class="tl">${data.updates.map(u=>`<li><span class="t">${esc(u.t)}</span>${esc(u.s)}</li>`).join('')}</ul></div>`;
   }
 
-  // 免责
   main.innerHTML += `<div class="card danger-box">${esc(data.disclaimer)}</div>`;
-
   document.getElementById('footerNote').textContent = data.footer;
 })();
 </script>
